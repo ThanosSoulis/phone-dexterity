@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/home_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#2C3E50"
+    android:paddingTop="30dp"
+    android:paddingLeft="30dp"
+    android:paddingRight="30dp"
+    android:paddingBottom="30dp"
+    android:orientation="vertical"
+    android:weightSum="12">
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:layout_weight="1"
+        >
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="Week"
+            android:textAlignment="center"
+            android:textColor="#ECF0F1"
+            android:textSize="24dp" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:layout_weight="4"
+        >
+
+        <com.github.mikephil.charting.charts.BarChart
+            android:id="@+id/history_bar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:layout_weight="1"
+        >
+
+        <TextView
+            android:id="@+id/time_today"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="Today: - minutes"
+            android:textAlignment="center"
+            android:textColor="#ECF0F1"
+            android:textSize="24dp" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:layout_weight="3"
+        >
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:weightSum="3">
+
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:gravity="center"
+                android:layout_weight="1"
+                >
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:weightSum="4">
+
+                    <RelativeLayout
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:gravity="center"
+                        android:layout_weight="1"
+                        >
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:text="Spin"
+                            android:textAlignment="center"
+                            android:textColor="#ffffff"
+                            android:textSize="16dp" />
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:gravity="center"
+                        android:layout_weight="3"
+                        >
+
+                        <ImageView
+                            android:id="@+id/spin_today"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:layout_marginStart="10dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginEnd="10dp"
+                            android:layout_marginBottom="10dp"
+                            android:src="@drawable/relaxing_z_circle" />
+
+                        <TextView
+                            android:id="@+id/spin_speed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:paddingLeft="7dp"
+                            android:paddingTop="25dp"
+                            android:text="-"
+                            android:textAlignment="center"
+                            android:textColor="#fff"
+                            android:textSize="20dp" />
+
+                        <TextView
+                            android:id="@+id/spin_score"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:paddingLeft="7dp"
+                            android:paddingBottom="25dp"
+                            android:text="-"
+                            android:textAlignment="center"
+                            android:textColor="#fff"
+                            android:textSize="20dp" />
+
+                        <TextView
+                            android:id="@+id/spin_rep"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:paddingRight="36dp"
+                            android:text="-"
+                            android:textAlignment="textEnd"
+                            android:textColor="#fff"
+                            android:textSize="24dp" />
+                    </RelativeLayout>
+                </LinearLayout>
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:gravity="center"
+                android:layout_weight="1"
+                >
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:weightSum="4">
+
+                    <RelativeLayout
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:gravity="center"
+                        android:layout_weight="1"
+                        >
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:text="Rotate"
+                            android:textAlignment="center"
+                            android:textColor="#ffffff"
+                            android:textSize="16dp" />
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:gravity="center"
+                        android:layout_weight="3"
+                        >
+                        <ImageView
+                            android:id="@+id/rotate_today"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:layout_marginStart="10dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginEnd="10dp"
+                            android:layout_marginBottom="10dp"
+                            android:src="@drawable/relaxing_y_circle"/>
+
+                        <TextView
+                            android:id="@+id/rotate_speed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:paddingLeft="7dp"
+                            android:paddingTop="25dp"
+                            android:text="-"
+                            android:textAlignment="center"
+                            android:textColor="#fff"
+                            android:textSize="20dp" />
+
+                        <TextView
+                            android:id="@+id/rotate_score"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:paddingLeft="7dp"
+                            android:paddingBottom="25dp"
+                            android:text="-"
+                            android:textAlignment="center"
+                            android:textColor="#fff"
+                            android:textSize="20dp" />
+
+                        <TextView
+                            android:id="@+id/rotate_rep"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:paddingRight="36dp"
+                            android:text="-"
+                            android:textAlignment="textEnd"
+                            android:textColor="#fff"
+                            android:textSize="24dp" />
+                    </RelativeLayout>
+                </LinearLayout>
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:gravity="center"
+                android:layout_weight="1"
+                >
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:weightSum="4">
+
+                    <RelativeLayout
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:gravity="center"
+                        android:layout_weight="1"
+                        >
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:text="Flip"
+                            android:textAlignment="center"
+                            android:textColor="#ffffff"
+                            android:textSize="16dp" />
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:gravity="center"
+                        android:layout_weight="3"
+                        >
+
+                        <ImageView
+                            android:id="@+id/flip_today"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:layout_marginStart="10dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginEnd="10dp"
+                            android:layout_marginBottom="10dp"
+                            android:src="@drawable/relaxing_x_circle" />
+
+                        <TextView
+                            android:id="@+id/flip_speed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:paddingLeft="7dp"
+                            android:paddingTop="25dp"
+                            android:text="-"
+                            android:textAlignment="center"
+                            android:textColor="#fff"
+                            android:textSize="20dp" />
+
+                        <TextView
+                            android:id="@+id/flip_score"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:paddingLeft="7dp"
+                            android:paddingBottom="25dp"
+                            android:text="-"
+                            android:textAlignment="center"
+                            android:textColor="#fff"
+                            android:textSize="20dp" />
+
+                        <TextView
+                            android:id="@+id/flip_rep"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:paddingRight="36dp"
+                            android:text="-"
+                            android:textAlignment="textEnd"
+                            android:textColor="#fff"
+                            android:textSize="24dp" />
+                    </RelativeLayout>
+                </LinearLayout>
+            </RelativeLayout>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:layout_weight="1"
+        >
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:layout_weight="2"
+        >
+
+        <Button
+            android:id="@+id/relax"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:background="#00FFFFFF"
+            android:drawableTop="@drawable/training"
+            android:text="Relaxing"
+            android:textAlignment="center"
+            android:textColor="#FFFFFF" />
+
+    </RelativeLayout>
+
+
+
+</LinearLayout>
