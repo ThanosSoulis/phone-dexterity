@@ -1,0 +1,904 @@
+---
+title: "exp time"
+author: "Allen Yeh"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```
+```
+
+```{r warning=FALSE}
+library(tidyverse)
+library(gmodels)
+library(rstatix)
+library(ggplot2)
+```
+
+### Import data
+
+#### Read the csv file and claim the data type
+```{r}
+
+
+usability <- read_csv("summary.csv", col_types = cols(
+  gesture = col_factor(levels = c("0", "1", "2", "3", "4", "5", "6")),
+  manipulation = col_factor(levels = c("0", "1", "2")), 
+  direction = col_factor(levels = c("0", "1")),
+  recognized = col_factor(levels = c("0", "1", "2", "3", "4", "5", "6")),
+  time = col_integer(),
+  trial = col_integer(),
+  block = col_integer(),
+  correct = col_logical(),
+  session = col_factor(levels = c("0", "1")), 
+  scenario = col_factor(levels = c("0", "1")), 
+  score = col_double(), 
+  speed = col_double() 
+)) %>% 
+  filter(trial >= 2) %>% 
+  mutate(
+    manipulation_code = manipulation %>% recode_factor(
+      `2` = "FLIP",  
+      `1` = "ROTATE",
+      `0` = "SPIN"
+      ),
+    direction_code = direction %>% recode_factor(
+      `1` = "ADD",
+      `0` = "ABD"
+      ),
+    gesture_code = gesture %>% recode_factor(
+      `6` = "FLIP_ADD",
+      `5` = "FLIP_ABD",
+      `4` = "ROTATE_ADD",
+      `3` = "ROTATE_ABD",
+      `2` = "SPIN_ADD",
+      `1` = "SPIN_ABD",
+      `0` = "NONE"
+      ),
+    recognized_code = recognized %>% recode_factor(
+      `6` = "FLIP_ADD",
+      `5` = "FLIP_ABD",
+      `4` = "ROTATE_ADD",
+      `3` = "ROTATE_ABD",
+      `2` = "SPIN_ADD",
+      `1` = "SPIN_ABD",
+      `0` = "NONE"
+      ),
+    session_code = session %>% recode_factor(
+      `1` = "postPractice",
+      `0` = "prePractice"
+      ),
+    scenario_code = scenario %>% recode_factor(
+      `1` = "stand",
+      `0` = "sit"
+      ),
+    time_fin = ifelse(correct, time / 1000, NA),
+    score_fin = ifelse(correct, score, NA),
+    speed_fin = ifelse(correct, speed, NA),
+    condition_code = case_when(session == "0" & scenario == "0" ~ "0", 
+                             session == "1" & scenario == "0" ~ "1",
+                             session == "1" & scenario == "1" ~ "2")%>% recode_factor(
+      `2` = "PostStand",
+      `1` = "PostSit",
+      `0` = "PreSit"
+      ),
+)
+```
+
+## accuracy
+```{r warning=FALSE}
+usability_accuracy <- usability %>%
+  group_by(id, condition_code, gesture_code) %>%
+  summarize(
+    accuracy = sum(correct) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, condition_code, gesture_code)
+
+accuracy_data <- usability_accuracy %>%
+  group_by(condition_code, gesture_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+print(accuracy_data)
+
+# line + dot
+accuracy_graph <- ggplot(accuracy_data) +
+  geom_pointrange( aes(x=gesture_code, y=meanAccuracy, ymin=lowCIAccuracy, ymax=highCIAccuracy, colour = condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse(limits=c(1,0.6)) +
+  coord_flip()
+
+accuracy_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+
+ggsave("accuracy_gesture.pdf", width = 4, height = 10)
+
+usability_accuracy <- usability %>%
+  group_by(id, condition_code, manipulation_code) %>%
+  summarize(
+    accuracy = sum(correct) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, condition_code, manipulation_code)
+
+accuracy_data <- usability_accuracy %>%
+  group_by(condition_code, manipulation_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+print(accuracy_data)
+
+# line + dot
+accuracy_graph <- ggplot(accuracy_data) +
+  geom_pointrange( aes(x=manipulation_code, y=meanAccuracy, ymin=lowCIAccuracy, ymax=highCIAccuracy, colour = condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse(limits=c(1,0.6)) +
+  coord_flip()
+accuracy_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("accuracy_manipulation.pdf", width = 4, height = 5)
+
+#threhsold_graph
+```
+### session
+```{r warning=FALSE}
+usability_session <- usability %>%
+  filter(scenario_code == "sit")
+
+usability_session_accuracy <- usability_session %>%
+  group_by(id, session_code, manipulation_code, direction_code) %>%
+  summarize(
+    accuracy = sum(correct) / n(),
+    error = 1 - sum(correct) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, session_code, manipulation_code, direction_code)
+
+session_accuracy_data <- usability_session_accuracy %>%
+  group_by(session_code, manipulation_code, direction_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+print(session_accuracy_data)
+
+accuracy_session_summary <-usability_session_accuracy %>%
+  group_by(session_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+accuracy_session_summary
+
+accuracy_manipulation_summary <-usability_session_accuracy %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+accuracy_manipulation_summary
+
+accuracy_direction_summary <-usability_session_accuracy %>%
+  group_by(direction_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+accuracy_direction_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_session_accuracy$accuracy)
+
+qqnorm(usability_session_accuracy$accuracy); qqline(usability_session_accuracy$accuracy, col = 2)
+qqplot(usability_session_accuracy$accuracy, rt(300, df = 5))
+
+library(lme4)
+library(lmerTest)
+library(car)
+
+usability_session_accuracy$id = factor(usability_session_accuracy$id)
+contrasts(usability_session_accuracy$session_code) <-"contr.sum"
+contrasts(usability_session_accuracy$manipulation_code) <-"contr.sum"
+contrasts(usability_session_accuracy$direction_code) <-"contr.sum"
+m = glmer(accuracy ~ session_code*manipulation_code*direction_code + (1|id), data=usability_session_accuracy, family=poisson)
+# use family=quasipoissonif overdispersion
+Anova(m, type=3)
+```
+### scenario
+```{r warning=FALSE}
+usability_scenario <- usability %>%
+  filter(session_code == "postPractice")
+
+usability_scenario_accuracy <- usability_scenario %>%
+  group_by(id, scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    accuracy = sum(correct) / n(),
+    error = 1 - sum(correct) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, scenario_code, manipulation_code, direction_code)
+
+scenario_accuracy_data <- usability_scenario_accuracy %>%
+  group_by(scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+print(scenario_accuracy_data)
+
+accuracy_scenario_summary <-usability_scenario_accuracy %>%
+  group_by(scenario_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+accuracy_scenario_summary
+
+accuracy_manipulation_summary <-usability_scenario_accuracy %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+accuracy_manipulation_summary
+
+accuracy_direction_summary <-usability_scenario_accuracy %>%
+  group_by(direction_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+accuracy_direction_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_scenario_accuracy$accuracy)
+
+qqnorm(usability_scenario_accuracy$accuracy); qqline(usability_scenario_accuracy$accuracy, col = 2)
+qqplot(usability_scenario_accuracy$accuracy, rt(300, df = 5))
+
+library(lme4)
+library(lmerTest)
+library(car)
+
+usability_scenario_accuracy$id = factor(usability_scenario_accuracy$id)
+contrasts(usability_scenario_accuracy$scenario_code) <-"contr.sum"
+contrasts(usability_scenario_accuracy$manipulation_code) <-"contr.sum"
+contrasts(usability_scenario_accuracy$direction_code) <-"contr.sum"
+m = glmer(accuracy ~ scenario_code*manipulation_code*direction_code + (1|id), data=usability_scenario_accuracy, family=poisson)
+# use family=quasipoissonif overdispersion
+Anova(m, type=3)
+```
+
+## time
+```{r warning=FALSE}
+usability_time <- usability %>%
+  filter(correct == TRUE)
+
+time_summary <-usability_time %>%
+  group_by(condition_code, gesture_code) %>%
+  summarize(
+    meanTime = time_fin %>% mean(na.rm=TRUE),
+    lowCITime = ci(time_fin)[2]%>% pmax(0),
+    highCITime = ci(time_fin)[3],
+    sdTime = ci(time_fin)[4],
+    stdTime = time_fin %>% sd())
+
+print(time_summary)
+
+# line + dot
+time_graph <- ggplot(time_summary) +
+  geom_pointrange( aes(x=gesture_code, y=meanTime, ymin=lowCITime, ymax=highCITime, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_continuous(limits=c(1.5,5.0)) +
+  coord_flip()
+
+time_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("time_gesture_ci.pdf", width = 4, height = 10)
+
+time_summary <-usability_time %>%
+  group_by(condition_code, manipulation_code) %>%
+  summarize(
+    meanTime = time_fin %>% mean(na.rm=TRUE),
+    lowCITime = ci(time_fin)[2]%>% pmax(0),
+    highCITime = ci(time_fin)[3],
+    sdTime = ci(time_fin)[4],
+    stdTime = time_fin %>% sd())
+
+print(time_summary)
+
+# line + dot
+time_graph <- ggplot(time_summary) +
+  geom_pointrange( aes(x=manipulation_code, y=meanTime, ymin=lowCITime, ymax=highCITime, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_continuous(limits=c(1.5,5.0)) +
+  coord_flip()
+
+time_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("time_manipulation_ci.pdf", width = 4, height = 5)
+
+```
+
+
+
+### session
+```{r warning=FALSE}
+usability_session <- usability_time %>%
+  filter(scenario_code == "sit")
+
+usability_session_time <- usability_session %>%
+  group_by(id, session_code, manipulation_code, direction_code) %>%
+  summarize(
+    averageTime = sum(time_fin) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, session_code, manipulation_code, direction_code)
+
+session_time_data <- usability_session_time %>%
+  group_by(session_code, manipulation_code, direction_code) %>%
+  summarize(
+    meanTime = averageTime %>% mean(na.rm=TRUE),
+    lowCITime = ci(averageTime)[2] %>% pmax(0),
+    highCITime = ci(averageTime)[3],
+    sdTime = ci(averageTime)[4],
+    stdTime = sd(averageTime))
+
+print(session_time_data)
+
+time_session_summary <-usability_session_time %>%
+  group_by(session_code) %>%
+  summarize(
+    meanTime = averageTime %>% mean(na.rm=TRUE),
+    lowCITime = ci(averageTime)[2] %>% pmax(0),
+    highCITime = ci(averageTime)[3],
+    sdTime = ci(averageTime)[4],
+    stdTime = sd(averageTime))
+
+time_session_summary
+
+time_manipulation_summary <-usability_session_time %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanTime = averageTime %>% mean(na.rm=TRUE),
+    lowCITime = ci(averageTime)[2] %>% pmax(0),
+    highCITime = ci(averageTime)[3],
+    sdTime = ci(averageTime)[4],
+    stdTime = sd(averageTime))
+
+time_manipulation_summary
+
+time_direction_summary <-usability_session_time %>%
+  group_by(direction_code) %>%
+  summarize(
+    meanTime = averageTime %>% mean(na.rm=TRUE),
+    lowCITime = ci(averageTime)[2] %>% pmax(0),
+    highCITime = ci(averageTime)[3],
+    sdTime = ci(averageTime)[4],
+    stdTime = sd(averageTime))
+
+time_direction_summary
+```
+
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_session_time$averageTime)
+
+qqnorm(usability_session_time$averageTime); qqline(usability_session_time$averageTime, col = 2)
+qqplot(usability_session_time$averageTime, rt(300, df = 5))
+
+library(rcompanion)
+
+plotNormalHistogram(usability_session_time$averageTime)
+
+usability_session_time$time_turkey =
+     transformTukey(usability_session_time$averageTime,
+                     plotit=FALSE)
+
+plotNormalHistogram(usability_session_time$time_turkey)
+
+shapiro.test(usability_session_time$time_turkey)
+
+
+library("ez")
+usability_session_time$id= factor(usability_session_time$id)
+ezANOVA(usability_session_time, dv=.(time_turkey), wid=.(id), within=.(session_code,manipulation_code, direction_code))
+
+```
+#### pairwise comparisons
+
+```{r}
+pairwise.t.test(usability_session_time$time_turkey, usability_session_time$session_code, p.adjust="bonf")
+
+pairwise.t.test(usability_session_time$time_turkey, usability_session_time$manipulation_code, p.adjust="bonf")
+
+pairwise.t.test(usability_session_time$time_turkey, usability_session_time$direction_code, p.adjust="bonf")
+
+```
+
+### scenario
+```{r warning=FALSE}
+usability_scenario <- usability_time %>%
+  filter(session_code == "postPractice")
+
+usability_scenario_time <- usability_scenario %>%
+  group_by(id, scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    averageTime = sum(time_fin) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, scenario_code, manipulation_code, direction_code)
+
+scenario_time_data <- usability_scenario_time %>%
+  group_by(scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    meanTime = averageTime %>% mean(na.rm=TRUE),
+    lowCITime = ci(averageTime)[2] %>% pmax(0),
+    highCITime = ci(averageTime)[3],
+    sdTime = ci(averageTime)[4],
+    stdTime = sd(averageTime))
+
+print(scenario_time_data)
+
+time_scenario_summary <-usability_scenario_time %>%
+  group_by(scenario_code) %>%
+  summarize(
+    meanTime = averageTime %>% mean(na.rm=TRUE),
+    lowCITime = ci(averageTime)[2] %>% pmax(0),
+    highCITime = ci(averageTime)[3],
+    sdTime = ci(averageTime)[4],
+    stdTime = sd(averageTime))
+
+time_scenario_summary
+
+time_manipulation_summary <-usability_scenario_time %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanTime = averageTime %>% mean(na.rm=TRUE),
+    lowCITime = ci(averageTime)[2] %>% pmax(0),
+    highCITime = ci(averageTime)[3],
+    sdTime = ci(averageTime)[4],
+    stdTime = sd(averageTime))
+
+time_manipulation_summary
+
+time_direction_summary <-usability_scenario_time %>%
+  group_by(direction_code) %>%
+  summarize(
+    meanTime = averageTime %>% mean(na.rm=TRUE),
+    lowCITime = ci(averageTime)[2] %>% pmax(0),
+    highCITime = ci(averageTime)[3],
+    sdTime = ci(averageTime)[4],
+    stdTime = sd(averageTime))
+
+time_direction_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_scenario_time$averageTime)
+
+qqnorm(usability_session_time$averageTime); qqline(usability_session_time$averageTime, col = 2)
+qqplot(usability_session_time$averageTime, rt(300, df = 5))
+
+library(rcompanion)
+
+plotNormalHistogram(usability_scenario_time$averageTime)
+
+usability_scenario_time$time_turkey =
+     transformTukey(usability_scenario_time$averageTime,
+                     plotit=FALSE)
+
+plotNormalHistogram(usability_scenario_time$time_turkey)
+
+shapiro.test(usability_scenario_time$time_turkey)
+
+
+library("ez")
+usability_scenario_time$id= factor(usability_scenario_time$id)
+ezANOVA(usability_scenario_time, dv=.(time_turkey), wid=.(id), within=.(scenario_code,manipulation_code, direction_code))
+
+```
+#### pairwise comparisons
+
+```{r}
+pairwise.t.test(usability_scenario_time$time_turkey, usability_scenario_time$manipulation_code, p.adjust="bonf")
+
+pairwise.t.test(usability_scenario_time$time_turkey, usability_scenario_time$direction_code, p.adjust="bonf")
+
+```
+
+## smoothness
+```{r warning=FALSE}
+usability_smoothness <- usability %>%
+  filter(correct == TRUE)
+
+smoothness_summary <-usability_smoothness %>%
+  group_by(condition_code, gesture_code) %>%
+  summarize(
+    meanScore = score_fin %>% mean(na.rm=TRUE),
+    lowCIScore = ci(score_fin)[2]%>% pmax(0),
+    highCIScore = ci(score_fin)[3],
+    sdScore = ci(score_fin)[4],
+    stdScore = score_fin %>% sd())
+
+print(smoothness_summary)
+
+# line + dot
+score_graph <- ggplot(smoothness_summary) +
+  geom_pointrange( aes(x=gesture_code, y=meanScore, ymin=lowCIScore, ymax=highCIScore, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_continuous(limits=c(0.03,0.05)) +
+  coord_flip()
+
+score_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("score_gesture_ci.pdf", width = 4, height = 10)
+
+smoothness_summary <-usability_smoothness %>%
+  group_by(condition_code, manipulation_code) %>%
+  summarize(
+    meanScore = score_fin %>% mean(na.rm=TRUE),
+    lowCIScore = ci(score_fin)[2]%>% pmax(0),
+    highCIScore = ci(score_fin)[3],
+    sdScore = ci(score_fin)[4],
+    stdScore = score_fin %>% sd())
+
+print(smoothness_summary)
+
+# line + dot
+score_graph <- ggplot(smoothness_summary) +
+  geom_pointrange( aes(x=manipulation_code, y=meanScore, ymin=lowCIScore, ymax=highCIScore, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_continuous(limits=c(0.03,0.05)) +
+  coord_flip()
+
+score_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("score_manipulation_ci.pdf", width = 4, height = 5)
+
+```
+
+### session
+```{r warning=FALSE}
+usability_session <- usability_smoothness %>%
+  filter(scenario_code == "sit")
+
+usability_session_smoothness <- usability_session %>%
+  group_by(id, session_code, manipulation_code, direction_code) %>%
+  summarize(
+    averageScore = sum(score_fin) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, session_code, manipulation_code, direction_code)
+
+session_score_data <- usability_session_smoothness %>%
+  group_by(session_code, manipulation_code, direction_code) %>%
+  summarize(
+    meanScore = averageScore %>% mean(na.rm=TRUE),
+    lowCIScore = ci(averageScore)[2]%>% pmax(0),
+    highCIScore = ci(averageScore)[3],
+    sdScore = ci(averageScore)[4],
+    stdScore = averageScore %>% sd())
+
+print(session_score_data)
+
+score_session_summary <-usability_session_smoothness %>%
+  group_by(session_code) %>%
+  summarize(
+    meanScore = averageScore %>% mean(na.rm=TRUE),
+    lowCIScore = ci(averageScore)[2]%>% pmax(0),
+    highCIScore = ci(averageScore)[3],
+    sdScore = ci(averageScore)[4],
+    stdScore = averageScore %>% sd())
+
+score_session_summary
+
+score_manipulation_summary <-usability_session_smoothness %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = averageScore %>% mean(na.rm=TRUE),
+    lowCIScore = ci(averageScore)[2]%>% pmax(0),
+    highCIScore = ci(averageScore)[3],
+    sdScore = ci(averageScore)[4],
+    stdScore = averageScore %>% sd())
+
+score_manipulation_summary
+
+score_direction_summary <-usability_session_smoothness %>%
+  group_by(direction_code) %>%
+  summarize(
+    meanScore = averageScore %>% mean(na.rm=TRUE),
+    lowCIScore = ci(averageScore)[2]%>% pmax(0),
+    highCIScore = ci(averageScore)[3],
+    sdScore = ci(averageScore)[4],
+    stdScore = averageScore %>% sd())
+
+score_direction_summary
+
+score_MD_summary <-usability_session_smoothness %>%
+  group_by(manipulation_code, direction_code) %>%
+  summarize(
+    meanScore = averageScore %>% mean(na.rm=TRUE),
+    lowCIScore = ci(averageScore)[2]%>% pmax(0),
+    highCIScore = ci(averageScore)[3],
+    sdScore = ci(averageScore)[4],
+    stdScore = averageScore %>% sd())
+
+score_MD_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_session_smoothness$averageScore)
+
+qqnorm(usability_session_smoothness$averageScore); qqline(usability_session_smoothness$averageScore, col = 2)
+qqplot(usability_session_smoothness$averageScore, rt(300, df = 5))
+
+library(rcompanion)
+
+plotNormalHistogram(usability_session_smoothness$averageScore)
+
+usability_session_smoothness$score_turkey =
+     transformTukey(usability_session_smoothness$averageScore,
+                     plotit=FALSE)
+
+plotNormalHistogram(usability_session_smoothness$score_turkey)
+
+shapiro.test(usability_session_smoothness$score_turkey)
+
+
+library("ez")
+usability_session_smoothness$id= factor(usability_session_smoothness$id)
+ezANOVA(usability_session_smoothness, dv=.(score_turkey), wid=.(id), within=.(session_code,manipulation_code, direction_code))
+
+```
+
+#### pairwise comparisons
+
+```{r}
+
+pairwise.t.test(usability_session_smoothness$score_turkey, usability_session_smoothness$manipulation_code, p.adjust="bonf")
+
+pairwise.t.test(usability_session_smoothness$score_turkey, interaction(usability_session_smoothness$manipulation_code, usability_session_smoothness$direction_code), p.adjust="bonf")
+
+```
+
+### scenario
+```{r warning=FALSE}
+usability_scenario <- usability_smoothness %>%
+  filter(session_code == "postPractice")
+
+usability_scenario_smoothness <- usability_scenario %>%
+  group_by(id, scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    averageScore = sum(score_fin) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, scenario_code, manipulation_code, direction_code)
+
+scenario_score_data <- usability_scenario_smoothness %>%
+  group_by(scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    meanScore = averageScore %>% mean(na.rm=TRUE),
+    lowCIScore = ci(averageScore)[2]%>% pmax(0),
+    highCIScore = ci(averageScore)[3],
+    sdScore = ci(averageScore)[4],
+    stdScore = averageScore %>% sd())
+
+print(scenario_score_data)
+
+score_scenario_summary <-usability_scenario_smoothness %>%
+  group_by(scenario_code) %>%
+  summarize(
+    meanScore = averageScore %>% mean(na.rm=TRUE),
+    lowCIScore = ci(averageScore)[2]%>% pmax(0),
+    highCIScore = ci(averageScore)[3],
+    sdScore = ci(averageScore)[4],
+    stdScore = averageScore %>% sd())
+
+score_scenario_summary
+
+score_manipulation_summary <-usability_scenario_smoothness %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = averageScore %>% mean(na.rm=TRUE),
+    lowCIScore = ci(averageScore)[2]%>% pmax(0),
+    highCIScore = ci(averageScore)[3],
+    sdScore = ci(averageScore)[4],
+    stdScore = averageScore %>% sd())
+
+score_manipulation_summary
+
+score_direction_summary <-usability_scenario_smoothness %>%
+  group_by(direction_code) %>%
+  summarize(
+    meanScore = averageScore %>% mean(na.rm=TRUE),
+    lowCIScore = ci(averageScore)[2]%>% pmax(0),
+    highCIScore = ci(averageScore)[3],
+    sdScore = ci(averageScore)[4],
+    stdScore = averageScore %>% sd())
+
+score_direction_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_scenario_smoothness$averageScore)
+
+qqnorm(usability_scenario_smoothness$averageScore); qqline(usability_scenario_smoothness$averageScore, col = 2)
+qqplot(usability_scenario_smoothness$averageScore, rt(300, df = 5))
+
+library(rcompanion)
+
+plotNormalHistogram(usability_scenario_smoothness$averageScore)
+
+usability_scenario_smoothness$score_turkey =
+     transformTukey(usability_scenario_smoothness$averageScore,
+                     plotit=FALSE)
+
+plotNormalHistogram(usability_scenario_smoothness$score_turkey)
+
+shapiro.test(usability_scenario_smoothness$score_turkey)
+
+
+library("ez")
+usability_scenario_smoothness$id= factor(usability_scenario_smoothness$id)
+ezANOVA(usability_scenario_smoothness, dv=.(score_turkey), wid=.(id), within=.(scenario_code,manipulation_code, direction_code))
+
+```
+
+#### pairwise comparisons
+
+```{r}
+
+pairwise.t.test(usability_scenario_smoothness$score_turkey, usability_scenario_smoothness$scenario_code, p.adjust="bonf")
+
+pairwise.t.test(usability_scenario_smoothness$score_turkey, usability_scenario_smoothness$manipulation_code, p.adjust="bonf")
+
+```
+
+### speed vs smoothness
+```{r warning=FALSE}
+usability_correct <- usability %>%
+  filter(correct == TRUE)
+
+res <- cor.test(usability_correct$time_fin, usability_correct$score_fin, 
+                    method = "spearman")
+res
+
+library("ggpubr")
+ggscatter(usability_correct, x = "time_fin", y = "score_fin", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "time", ylab = "score")
+
+usability_correct_spin <- usability_correct %>%
+  filter(manipulation_code == "SPIN")
+
+res <- cor.test(usability_correct_spin$time_fin, usability_correct_spin$score_fin, 
+                    method = "spearman")
+res
+
+library("ggpubr")
+ggscatter(usability_correct_spin, x = "time_fin", y = "score_fin", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "time", ylab = "score")
+
+usability_correct_rotate <- usability_correct %>%
+  filter(manipulation_code == "ROTATE")
+
+res <- cor.test(usability_correct_rotate$time_fin, usability_correct_rotate$score_fin, 
+                    method = "spearman")
+res
+
+library("ggpubr")
+ggscatter(usability_correct_rotate, x = "time_fin", y = "score_fin", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "time", ylab = "score")
+
+usability_correct_flip <- usability_correct %>%
+  filter(manipulation_code == "FLIP")
+
+res <- cor.test(usability_correct_flip$time_fin, usability_correct_flip$score_fin, 
+                    method = "spearman")
+res
+
+library("ggpubr")
+ggscatter(usability_correct_flip, x = "time_fin", y = "score_fin", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "time", ylab = "score")
+```
+

@@ -1,0 +1,908 @@
+---
+title: "exp time"
+author: "Allen Yeh"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```
+```
+
+```{r warning=FALSE}
+library(tidyverse)
+library(gmodels)
+library(rstatix)
+library(ggplot2)
+library(ez)
+library(ARTool)
+library(emmeans)
+```
+
+### Import data
+
+#### Read the csv file and claim the data type
+```{r}
+type_level <- c("easiness", "comfort", "confidence", "social")
+
+preference <- read_csv("summaryPreference.csv", col_types = cols(
+  gesture = col_factor(levels = c("0", "1", "2", "3", "4", "5", "6")),
+  manipulation = col_factor(levels = c("0", "1", "2")), 
+  direction = col_factor(levels = c("0", "1")),
+  rating = col_integer(),
+  session = col_factor(levels = c("0", "1")), 
+  scenario = col_factor(levels = c("0", "1")),
+  category = col_factor(levels = type_level),
+)) %>% 
+  mutate(
+    manipulation_code = manipulation %>% recode_factor(
+      `2` = "FLIP",  
+      `1` = "ROTATE",
+      `0` = "SPIN"
+      ),
+    direction_code = direction %>% recode_factor(
+      `1` = "ADD",
+      `0` = "ABD"
+      ),
+    gesture_code = gesture %>% recode_factor(
+      `6` = "FLIP_ADD",
+      `5` = "FLIP_ABD",
+      `4` = "ROTATE_ADD",
+      `3` = "ROTATE_ABD",
+      `2` = "SPIN_ADD",
+      `1` = "SPIN_ABD",
+      `0` = "NONE"
+      ),
+    session_code = session %>% recode_factor(
+      `1` = "postPractice",
+      `0` = "prePractice"
+      ),
+    scenario_code = scenario %>% recode_factor(
+      `1` = "stand",
+      `0` = "sit"
+      ),
+    condition_code = case_when(session == "0" & scenario == "0" ~ "0", 
+                             session == "1" & scenario == "0" ~ "1",
+                             session == "1" & scenario == "1" ~ "2")%>% recode_factor(
+      `2` = "PostStand",
+      `1` = "PostSit",
+      `0` = "PreSit"
+      ),
+)
+```
+
+### ease
+
+#### summarize
+
+```{r warning=FALSE}
+data_ease <- preference %>%
+  filter(category == "easiness")
+
+boxplot(rating~gesture,data=data_ease, main="Ease",
+   xlab="Gesture", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_ease_summary <-data_ease %>%
+  group_by(condition_code, gesture_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(0),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+# line + dot
+ease_graph <- ggplot(data_ease_summary) +
+  geom_pointrange( aes(x=gesture_code, y=meanScore, ymin=lowCI, ymax=highCI, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+ease_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("ease_gesture_ci.pdf", width = 4, height = 10)
+
+data_ease_type_summary <-data_ease %>%
+  group_by(condition_code, manipulation_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(0),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+# line + dot
+ease_type_graph <- ggplot(data_ease_type_summary) +
+  geom_pointrange( aes(x=manipulation_code, y=meanScore, ymin=lowCI, ymax=highCI, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse( lim=c(7,2)) + 
+  coord_flip()
+
+ease_type_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("ease_manipulation_ci.pdf", width = 4, height = 5)
+
+#data_ease_count <- data_ease %>% group_by(manipulation) %>% count(likert)
+#write.csv(data_ease_count,"ease_count.csv", row.names = TRUE)
+```
+
+#### session
+```{r warning=FALSE}
+usability_session <- data_ease %>%
+  filter(scenario_code == "sit")
+
+session_ease_data <- usability_session %>%
+  group_by(session_code, manipulation_code, direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+print(session_ease_data)
+
+ease_session_summary <-usability_session %>%
+  group_by(session_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+ease_session_summary
+
+ease_manipulation_summary <-usability_session %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+ease_manipulation_summary
+
+ease_direction_summary <-usability_session %>%
+  group_by(direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+ease_direction_summary
+
+ease_SM_summary <-usability_session %>%
+  group_by(session_code, manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+ease_SM_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_session$rating)
+
+m <- art(
+  rating ~ session_code*manipulation_code*direction_code + (1|id),
+  data = usability_session
+)
+
+anova(m)
+
+art.con(m, "session_code")
+art.con(m, "manipulation_code")
+art.con(m, "session_code:manipulation_code")
+```
+####scenario
+```{r warning=FALSE}
+usability_scenario <- data_ease %>%
+  filter(session_code == "postPractice")
+
+scenario_ease_data <- usability_scenario %>%
+  group_by(scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+print(scenario_ease_data)
+
+ease_scenario_summary <-usability_scenario %>%
+  group_by(scenario_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+ease_scenario_summary
+
+ease_manipulation_summary <-usability_scenario %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+ease_manipulation_summary
+
+ease_direction_summary <-usability_scenario %>%
+  group_by(direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+ease_direction_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_scenario$rating)
+
+m <- art(
+  rating ~ scenario_code*manipulation_code*direction_code + (1|id),
+  data = usability_scenario
+)
+
+anova(m)
+
+art.con(m, "manipulation_code")
+```
+
+### comfort
+
+#### summarize
+
+```{r warning=FALSE}
+data_comfort <- preference %>%
+  filter(category == "comfort")
+
+boxplot(rating~gesture,data=data_comfort, main="Comfort",
+   xlab="Gesture", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_comfort_summary <-data_comfort %>%
+  group_by(condition_code, gesture_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(0),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+# line + dot
+comfort_graph <- ggplot(data_comfort_summary) +
+  geom_pointrange( aes(x=gesture_code, y=meanScore, ymin=lowCI, ymax=highCI, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+comfort_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("comfort_gesture_ci.pdf", width = 4, height = 10)
+
+data_comfort_type_summary <-data_comfort %>%
+  group_by(condition_code, manipulation_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(0),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+# line + dot
+comfort_type_graph <- ggplot(data_comfort_type_summary) +
+  geom_pointrange( aes(x=manipulation_code, y=meanScore, ymin=lowCI, ymax=highCI, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse( lim=c(7,2)) + 
+  coord_flip()
+
+comfort_type_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("comfort_manipulation_ci.pdf", width = 4, height = 5)
+
+#data_ease_count <- data_ease %>% group_by(manipulation) %>% count(likert)
+#write.csv(data_ease_count,"ease_count.csv", row.names = TRUE)
+```
+
+#### session
+```{r warning=FALSE}
+usability_session <- data_comfort %>%
+  filter(scenario_code == "sit")
+
+session_comfort_data <- usability_session %>%
+  group_by(session_code, manipulation_code, direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+print(session_comfort_data)
+
+comfort_session_summary <-usability_session %>%
+  group_by(session_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+comfort_session_summary
+
+comfort_manipulation_summary <-usability_session %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+comfort_manipulation_summary
+
+comfort_session_manipulation_summary <-usability_session %>%
+  group_by(session_code, manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+comfort_session_manipulation_summary
+
+comfort_direction_summary <-usability_session %>%
+  group_by(direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+comfort_direction_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_session$rating)
+
+m <- art(
+  rating ~ session_code*manipulation_code*direction_code + (1|id),
+  data = usability_session
+)
+
+anova(m)
+
+art.con(m, "session_code")
+art.con(m, "manipulation_code")
+art.con(m, "session_code:manipulation_code")
+```
+####scenario
+```{r warning=FALSE}
+usability_scenario <- data_comfort %>%
+  filter(session_code == "postPractice")
+
+scenario_comfort_data <- usability_scenario %>%
+  group_by(scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+print(scenario_comfort_data)
+
+comfort_scenario_summary <-usability_scenario %>%
+  group_by(scenario_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+comfort_scenario_summary
+
+comfort_manipulation_summary <-usability_scenario %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+comfort_manipulation_summary
+
+comfort_direction_summary <-usability_scenario %>%
+  group_by(direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+comfort_direction_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_scenario$rating)
+
+m <- art(
+  rating ~ scenario_code*manipulation_code*direction_code + (1|id),
+  data = usability_scenario
+)
+
+anova(m)
+
+art.con(m, "manipulation_code")
+```
+
+### confidence
+
+#### summarize
+
+```{r warning=FALSE}
+data_confidence <- preference %>%
+  filter(category == "confidence")
+
+boxplot(rating~gesture,data=data_confidence, main="Confidence",
+   xlab="Gesture", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_confidence_summary <-data_confidence %>%
+  group_by(condition_code, gesture_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(0),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+# line + dot
+confidence_graph <- ggplot(data_confidence_summary) +
+  geom_pointrange( aes(x=gesture_code, y=meanScore, ymin=lowCI, ymax=highCI, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+confidence_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("confidence_gesture_ci.pdf", width = 4, height = 10)
+
+data_confidence_type_summary <-data_confidence %>%
+  group_by(condition_code, manipulation_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(0),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+# line + dot
+confidence_type_graph <- ggplot(data_confidence_type_summary) +
+  geom_pointrange( aes(x=manipulation_code, y=meanScore, ymin=lowCI, ymax=highCI, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse( lim=c(7,2)) + 
+  coord_flip()
+
+confidence_type_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("confidence_manipulation_ci.pdf", width = 4, height = 5)
+
+#data_ease_count <- data_ease %>% group_by(manipulation) %>% count(likert)
+#write.csv(data_ease_count,"ease_count.csv", row.names = TRUE)
+```
+
+#### session
+```{r warning=FALSE}
+usability_session <- data_confidence %>%
+  filter(scenario_code == "sit")
+
+session_confidence_data <- usability_session %>%
+  group_by(session_code, manipulation_code, direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+print(session_confidence_data)
+
+confidence_session_summary <-usability_session %>%
+  group_by(session_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+confidence_session_summary
+
+confidence_manipulation_summary <-usability_session %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+confidence_manipulation_summary
+
+confidence_session_manipulation_summary <-usability_session %>%
+  group_by(session_code, manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+confidence_session_manipulation_summary
+
+
+confidence_direction_summary <-usability_session %>%
+  group_by(direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+confidence_direction_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_session$rating)
+
+m <- art(
+  rating ~ session_code*manipulation_code*direction_code + (1|id),
+  data = usability_session
+)
+
+anova(m)
+
+art.con(m, "session_code")
+art.con(m, "manipulation_code")
+art.con(m, "session_code:manipulation_code")
+```
+####scenario
+```{r warning=FALSE}
+usability_scenario <- data_confidence %>%
+  filter(session_code == "postPractice")
+
+scenario_confidence_data <- usability_scenario %>%
+  group_by(scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+print(scenario_confidence_data)
+
+confidence_scenario_summary <-usability_scenario %>%
+  group_by(scenario_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+confidence_scenario_summary
+
+confidence_manipulation_summary <-usability_scenario %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+confidence_manipulation_summary
+
+confidence_direction_summary <-usability_scenario %>%
+  group_by(direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+confidence_direction_summary
+```
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_scenario$rating)
+
+m <- art(
+  rating ~ scenario_code*manipulation_code*direction_code + (1|id),
+  data = usability_scenario
+)
+
+anova(m)
+
+art.con(m, "manipulation_code")
+```
+
+### social
+
+#### summarize
+
+```{r warning=FALSE}
+data_social <- preference %>%
+  filter(category == "social")
+
+boxplot(rating~gesture,data=data_social, main="Social",
+   xlab="Gesture", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_social_summary <-data_social %>%
+  group_by(condition_code, gesture_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(0),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+# line + dot
+social_graph <- ggplot(data_social_summary) +
+  geom_pointrange( aes(x=gesture_code, y=meanScore, ymin=lowCI, ymax=highCI, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+social_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("social_gesture_ci.pdf", width = 4, height = 10)
+
+data_social_type_summary <-data_social %>%
+  group_by(condition_code, manipulation_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(0),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+# line + dot
+social_type_graph <- ggplot(data_social_type_summary) +
+  geom_pointrange( aes(x=manipulation_code, y=meanScore, ymin=lowCI, ymax=highCI, colour=condition_code), alpha=0.9, size=0.8, position = position_dodge(width = 0.5)) +
+  scale_y_reverse( lim=c(7,2)) + 
+  coord_flip()
+
+social_type_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("social_manipulation_ci.pdf", width = 4, height = 5)
+
+#data_ease_count <- data_ease %>% group_by(manipulation) %>% count(likert)
+#write.csv(data_ease_count,"ease_count.csv", row.names = TRUE)
+```
+
+#### session
+```{r warning=FALSE}
+usability_session <- data_social %>%
+  filter(scenario_code == "sit")
+
+session_social_data <- usability_session %>%
+  group_by(session_code, manipulation_code, direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+print(session_social_data)
+
+social_session_summary <-usability_session %>%
+  group_by(session_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+social_session_summary
+
+social_manipulation_summary <-usability_session %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+social_manipulation_summary
+
+social_direction_summary <-usability_session %>%
+  group_by(direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+social_direction_summary
+
+social_SM_summary <-usability_session %>%
+  group_by(session_code, manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+social_SM_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_session$rating)
+
+m <- art(
+  rating ~ session_code*manipulation_code*direction_code + (1|id),
+  data = usability_session
+)
+
+anova(m)
+
+art.con(m, "session_code")
+art.con(m, "manipulation_code")
+art.con(m, "session_code:manipulation_code")
+```
+
+####scenario
+```{r warning=FALSE}
+usability_scenario <- data_social %>%
+  filter(session_code == "postPractice")
+
+scenario_social_data <- usability_scenario %>%
+  group_by(scenario_code, manipulation_code, direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+print(scenario_social_data)
+
+social_scenario_summary <-usability_scenario %>%
+  group_by(scenario_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+social_scenario_summary
+
+social_manipulation_summary <-usability_scenario %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+social_manipulation_summary
+
+social_direction_summary <-usability_scenario %>%
+  group_by(direction_code) %>%
+  summarize(
+    mean = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2] %>% pmax(0),
+    highCI = ci(rating)[3] %>% pmin(7),
+    sd = ci(rating)[4],
+    std = sd(rating))
+
+social_direction_summary
+```
+#### analysis
+```{r warning=FALSE}
+shapiro.test(usability_scenario$rating)
+
+m <- art(
+  rating ~ scenario_code*manipulation_code*direction_code + (1|id),
+  data = usability_scenario
+)
+
+anova(m)
+
+art.con(m, "manipulation_code")
+```

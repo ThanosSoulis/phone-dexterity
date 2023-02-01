@@ -1,0 +1,275 @@
+---
+title: "formative study"
+author: "Allen Yeh"
+output:
+  html_document
+---
+
+```
+```
+
+```{r warning=FALSE}
+library(tidyverse)
+library(gmodels)
+library(rstatix)
+```
+
+### Import data
+
+#### Read the csv file and claim the data type
+```{r}
+participants <- read_csv("participants.csv", col_types = cols(
+  gender = col_factor(levels = c("Male","Female")), 
+  age = col_factor(levels = c("18 - 24","25 - 34", "35 - 44", "45 - 54", "55 - 64", "65 - 74", "75 - 84")), 
+  smartphoneExperience = col_factor(levels = c("-3","3-5", "6-10", "10-")),
+  phoneSize = col_factor(levels = c("-4", "4-5", "5-6", "6-")), 
+  dailyUsage = col_factor(levels = c("-1", "1-2", "2-4", "4-8", "8-")), 
+  handSize = col_factor(levels = c("6.5-7.5", "7.5-8.5", "8.5-9.5", "9.5-10.5")),
+  phoneHeight = col_double(),
+  phoneWidth = col_double(),
+  phoneThickness = col_double(),
+  phoneWeight = col_double()
+  )) %>% mutate(
+  phoneSize_Num = phoneSize  %>%  recode(
+        "-4" = 1,
+        "4-5" = 2,
+        "5-6" = 3,
+        "6-" = 4
+        ),
+  handSize_Num = handSize  %>%  recode(
+        "6.5-7.5" = 1,
+        "7.5-8.5" = 2,
+        "8.5-9.5" = 3,
+        "9.5-10.5" = 4
+        )
+    )
+
+data <- read_csv("preference_likert_new.csv", col_types = cols(
+  id = col_integer(),
+  manipulation = col_character(),
+  type = col_character(),
+  likert = col_character()
+)) %>% mutate(
+  likert_num = likert  %>%  recode(
+        "Strongly agree" = 7,
+        "Agree" = 6,
+        "Somewhat agree" = 5,
+        "Neither agree nor disagree" = 4,
+        "Somewhat disagree" = 3,
+        "Disagree" = 2,
+        "Strongly disagree" = 1
+        )
+)
+
+res <- cor.test(participants$phoneSize_Num, participants$handSize_Num, 
+                    method = "spearman")
+res
+
+library("ggpubr")
+ggscatter(participants, x = "phoneSize_Num", y = "handSize_Num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "HandSize")
+
+participants_partial<-participants%>%
+  filter(!is.na(phoneHeight))
+
+```
+
+### ease
+
+```{r warning=FALSE}
+data_ease <- data %>%
+  filter(type == "ease")
+
+res.fried <- data_ease %>% friedman_test(likert_num ~ manipulation |id)
+res.fried
+
+data_ease %>% friedman_effsize(likert_num ~ manipulation |id)
+
+# pairwise comparisons
+pwc <- data_ease %>%
+  wilcox_test(likert_num ~ manipulation, paired = TRUE, p.adjust.method = "bonferroni")
+pwc
+
+total_ease <- full_join(data_ease, participants)
+
+res <- cor.test(total_ease$phoneSize_Num, total_ease$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_ease$handSize_Num, total_ease$likert_num, 
+                    method = "spearman")
+res
+
+
+library("ggpubr")
+ggscatter(total_ease, x = "phoneSize_Num", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "Score")
+
+ggscatter(total_ease, x = "handSize_Num", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "HandSize", ylab = "Score")
+
+partial_ease <- right_join(data_ease, participants_partial)
+
+res <- cor.test(partial_ease$phoneSize_Num, partial_ease$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_ease$handSize_Num, partial_ease$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_ease$phoneHeight, partial_ease$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_ease$phoneWidth, partial_ease$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_ease$phoneThickness, partial_ease$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_ease$phoneWeight, partial_ease$likert_num, 
+                    method = "spearman")
+res
+
+
+library("ggpubr")
+ggscatter(partial_ease, x = "phoneSize_Num", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "Score")
+
+ggscatter(partial_ease, x = "handSize_Num", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "HandSize", ylab = "Score")
+
+ggscatter(partial_ease, x = "phoneHeight", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneHeight", ylab = "Score")
+
+ggscatter(partial_ease, x = "phoneWidth", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWidth", ylab = "Score")
+
+ggscatter(partial_ease, x = "phoneThickness", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneThickness", ylab = "Score")
+
+ggscatter(partial_ease, x = "phoneWeight", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWeight", ylab = "Score")
+
+```
+
+### comfort
+```{r warning=FALSE}
+data_comfort <- data %>%
+  filter(type == "comfort")
+
+res.fried <- data_comfort %>% friedman_test(likert_num ~ manipulation |id)
+res.fried
+
+data_comfort %>% friedman_effsize(likert_num ~ manipulation |id)
+
+# pairwise comparisons
+pwc <- data_comfort %>%
+  wilcox_test(likert_num ~ manipulation, paired = TRUE, p.adjust.method = "bonferroni")
+pwc
+
+total_comfort <- full_join(data_comfort, participants)
+
+res <- cor.test(total_comfort$phoneSize_Num, total_comfort$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_comfort$handSize_Num, total_comfort$likert_num, 
+                    method = "spearman")
+res
+
+
+library("ggpubr")
+ggscatter(total_comfort, x = "phoneSize_Num", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "Score")
+
+ggscatter(total_comfort, x = "handSize_Num", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "HandSize", ylab = "Score")
+
+partial_comfort <- right_join(data_comfort, participants_partial)
+
+res <- cor.test(partial_comfort$phoneSize_Num, partial_comfort$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_comfort$handSize_Num, partial_comfort$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_comfort$phoneHeight, partial_comfort$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_comfort$phoneWidth, partial_comfort$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_comfort$phoneThickness, partial_comfort$likert_num, 
+                    method = "spearman")
+res
+
+res <- cor.test(partial_comfort$phoneWeight, partial_comfort$likert_num, 
+                    method = "spearman")
+res
+
+
+library("ggpubr")
+ggscatter(partial_comfort, x = "phoneSize_Num", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "Score")
+
+ggscatter(partial_comfort, x = "handSize_Num", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "HandSize", ylab = "Score")
+
+ggscatter(partial_comfort, x = "phoneHeight", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneHeight", ylab = "Score")
+
+ggscatter(partial_comfort, x = "phoneWidth", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWidth", ylab = "Score")
+
+ggscatter(partial_comfort, x = "phoneThickness", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneThickness", ylab = "Score")
+
+ggscatter(partial_comfort, x = "phoneWeight", y = "likert_num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWeight", ylab = "Score")
+
+
+
+```
+

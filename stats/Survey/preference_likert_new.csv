@@ -1,0 +1,301 @@
+id,manipulation,type,likert
+0,shifting,ease,Somewhat disagree
+1,shifting,ease,Strongly agree
+2,shifting,ease,Agree
+3,shifting,ease,Agree
+4,shifting,ease,Strongly agree
+5,shifting,ease,Strongly agree
+6,shifting,ease,Somewhat agree
+7,shifting,ease,Disagree
+8,shifting,ease,Strongly agree
+9,shifting,ease,Strongly agree
+10,shifting,ease,Agree
+11,shifting,ease,Disagree
+12,shifting,ease,Agree
+13,shifting,ease,Disagree
+14,shifting,ease,Agree
+15,shifting,ease,Disagree
+16,shifting,ease,Strongly disagree
+17,shifting,ease,Strongly agree
+18,shifting,ease,Disagree
+19,shifting,ease,Strongly agree
+20,shifting,ease,Strongly agree
+21,shifting,ease,Agree
+22,shifting,ease,Strongly agree
+23,shifting,ease,Agree
+24,shifting,ease,Somewhat disagree
+25,shifting,ease,Agree
+26,shifting,ease,Agree
+27,shifting,ease,Agree
+28,shifting,ease,Neither agree nor disagree
+29,shifting,ease,Agree
+0,shifting,comfort,Somewhat disagree
+1,shifting,comfort,Strongly agree
+2,shifting,comfort,Disagree
+3,shifting,comfort,Somewhat agree
+4,shifting,comfort,Strongly agree
+5,shifting,comfort,Strongly agree
+6,shifting,comfort,Somewhat agree
+7,shifting,comfort,Disagree
+8,shifting,comfort,Somewhat agree
+9,shifting,comfort,Strongly agree
+10,shifting,comfort,Somewhat disagree
+11,shifting,comfort,Disagree
+12,shifting,comfort,Agree
+13,shifting,comfort,Disagree
+14,shifting,comfort,Somewhat agree
+15,shifting,comfort,Disagree
+16,shifting,comfort,Strongly disagree
+17,shifting,comfort,Agree
+18,shifting,comfort,Disagree
+19,shifting,comfort,Strongly agree
+20,shifting,comfort,Agree
+21,shifting,comfort,Agree
+22,shifting,comfort,Somewhat agree
+23,shifting,comfort,Agree
+24,shifting,comfort,Somewhat disagree
+25,shifting,comfort,Somewhat agree
+26,shifting,comfort,Somewhat agree
+27,shifting,comfort,Agree
+28,shifting,comfort,Neither agree nor disagree
+29,shifting,comfort,Agree
+0,spinning,ease,Agree
+1,spinning,ease,Neither agree nor disagree
+2,spinning,ease,Somewhat disagree
+3,spinning,ease,Agree
+4,spinning,ease,Disagree
+5,spinning,ease,Neither agree nor disagree
+6,spinning,ease,Disagree
+7,spinning,ease,Somewhat disagree
+8,spinning,ease,Somewhat agree
+9,spinning,ease,Somewhat disagree
+10,spinning,ease,Somewhat disagree
+11,spinning,ease,Disagree
+12,spinning,ease,Somewhat agree
+13,spinning,ease,Disagree
+14,spinning,ease,Agree
+15,spinning,ease,Somewhat agree
+16,spinning,ease,Somewhat agree
+17,spinning,ease,Strongly agree
+18,spinning,ease,Neither agree nor disagree
+19,spinning,ease,Strongly agree
+20,spinning,ease,Agree
+21,spinning,ease,Agree
+22,spinning,ease,Somewhat agree
+23,spinning,ease,Agree
+24,spinning,ease,Somewhat agree
+25,spinning,ease,Strongly agree
+26,spinning,ease,Agree
+27,spinning,ease,Agree
+28,spinning,ease,Disagree
+29,spinning,ease,Somewhat disagree
+0,spinning,comfort,Neither agree nor disagree
+1,spinning,comfort,Neither agree nor disagree
+2,spinning,comfort,Strongly disagree
+3,spinning,comfort,Agree
+4,spinning,comfort,Disagree
+5,spinning,comfort,Disagree
+6,spinning,comfort,Agree
+7,spinning,comfort,Disagree
+8,spinning,comfort,Somewhat disagree
+9,spinning,comfort,Neither agree nor disagree
+10,spinning,comfort,Disagree
+11,spinning,comfort,Disagree
+12,spinning,comfort,Somewhat disagree
+13,spinning,comfort,Disagree
+14,spinning,comfort,Agree
+15,spinning,comfort,Agree
+16,spinning,comfort,Somewhat disagree
+17,spinning,comfort,Agree
+18,spinning,comfort,Somewhat disagree
+19,spinning,comfort,Agree
+20,spinning,comfort,Somewhat agree
+21,spinning,comfort,Agree
+22,spinning,comfort,Neither agree nor disagree
+23,spinning,comfort,Somewhat agree
+24,spinning,comfort,Somewhat agree
+25,spinning,comfort,Agree
+26,spinning,comfort,Agree
+27,spinning,comfort,Agree
+28,spinning,comfort,Disagree
+29,spinning,comfort,Neither agree nor disagree
+0,tilting,ease,Somewhat agree
+1,tilting,ease,Strongly agree
+2,tilting,ease,Strongly agree
+3,tilting,ease,Strongly agree
+4,tilting,ease,Agree
+5,tilting,ease,Strongly agree
+6,tilting,ease,Agree
+7,tilting,ease,Agree
+8,tilting,ease,Strongly agree
+9,tilting,ease,Agree
+10,tilting,ease,Agree
+11,tilting,ease,Agree
+12,tilting,ease,Agree
+13,tilting,ease,Disagree
+14,tilting,ease,Agree
+15,tilting,ease,Strongly agree
+16,tilting,ease,Strongly agree
+17,tilting,ease,Strongly agree
+18,tilting,ease,Strongly agree
+19,tilting,ease,Strongly agree
+20,tilting,ease,Strongly agree
+21,tilting,ease,Neither agree nor disagree
+22,tilting,ease,Strongly agree
+23,tilting,ease,Agree
+24,tilting,ease,Agree
+25,tilting,ease,Disagree
+26,tilting,ease,Somewhat agree
+27,tilting,ease,Agree
+28,tilting,ease,Strongly agree
+29,tilting,ease,Strongly agree
+0,tilting,comfort,Neither agree nor disagree
+1,tilting,comfort,Strongly agree
+2,tilting,comfort,Strongly agree
+3,tilting,comfort,Strongly agree
+4,tilting,comfort,Agree
+5,tilting,comfort,Strongly agree
+6,tilting,comfort,Agree
+7,tilting,comfort,Agree
+8,tilting,comfort,Agree
+9,tilting,comfort,Agree
+10,tilting,comfort,Agree
+11,tilting,comfort,Agree
+12,tilting,comfort,Somewhat agree
+13,tilting,comfort,Disagree
+14,tilting,comfort,Neither agree nor disagree
+15,tilting,comfort,Strongly agree
+16,tilting,comfort,Strongly agree
+17,tilting,comfort,Somewhat agree
+18,tilting,comfort,Strongly agree
+19,tilting,comfort,Strongly agree
+20,tilting,comfort,Strongly agree
+21,tilting,comfort,Somewhat disagree
+22,tilting,comfort,Strongly agree
+23,tilting,comfort,Neither agree nor disagree
+24,tilting,comfort,Agree
+25,tilting,comfort,Disagree
+26,tilting,comfort,Somewhat agree
+27,tilting,comfort,Agree
+28,tilting,comfort,Strongly agree
+29,tilting,comfort,Strongly agree
+0,rotating,ease,Agree
+1,rotating,ease,Strongly agree
+2,rotating,ease,Agree
+3,rotating,ease,Strongly agree
+4,rotating,ease,Strongly disagree
+5,rotating,ease,Agree
+6,rotating,ease,Agree
+7,rotating,ease,Agree
+8,rotating,ease,Agree
+9,rotating,ease,Agree
+10,rotating,ease,Agree
+11,rotating,ease,Neither agree nor disagree
+12,rotating,ease,Agree
+13,rotating,ease,Agree
+14,rotating,ease,Strongly agree
+15,rotating,ease,Agree
+16,rotating,ease,Agree
+17,rotating,ease,Agree
+18,rotating,ease,Somewhat agree
+19,rotating,ease,Somewhat agree
+20,rotating,ease,Strongly agree
+21,rotating,ease,Agree
+22,rotating,ease,Neither agree nor disagree
+23,rotating,ease,Agree
+24,rotating,ease,Somewhat agree
+25,rotating,ease,Agree
+26,rotating,ease,Neither agree nor disagree
+27,rotating,ease,Agree
+28,rotating,ease,Agree
+29,rotating,ease,Somewhat disagree
+0,rotating,comfort,Somewhat agree
+1,rotating,comfort,Strongly agree
+2,rotating,comfort,Agree
+3,rotating,comfort,Strongly agree
+4,rotating,comfort,Strongly disagree
+5,rotating,comfort,Somewhat disagree
+6,rotating,comfort,Agree
+7,rotating,comfort,Agree
+8,rotating,comfort,Somewhat disagree
+9,rotating,comfort,Agree
+10,rotating,comfort,Somewhat agree
+11,rotating,comfort,Neither agree nor disagree
+12,rotating,comfort,Somewhat agree
+13,rotating,comfort,Agree
+14,rotating,comfort,Strongly agree
+15,rotating,comfort,Agree
+16,rotating,comfort,Agree
+17,rotating,comfort,Somewhat agree
+18,rotating,comfort,Strongly agree
+19,rotating,comfort,Agree
+20,rotating,comfort,Strongly agree
+21,rotating,comfort,Agree
+22,rotating,comfort,Disagree
+23,rotating,comfort,Agree
+24,rotating,comfort,Somewhat disagree
+25,rotating,comfort,Agree
+26,rotating,comfort,Somewhat agree
+27,rotating,comfort,Agree
+28,rotating,comfort,Agree
+29,rotating,comfort,Somewhat disagree
+0,flipping,ease,Disagree
+1,flipping,ease,Disagree
+2,flipping,ease,Disagree
+3,flipping,ease,Disagree
+4,flipping,ease,Strongly disagree
+5,flipping,ease,Agree
+6,flipping,ease,Strongly agree
+7,flipping,ease,Disagree
+8,flipping,ease,Agree
+9,flipping,ease,Somewhat disagree
+10,flipping,ease,Strongly disagree
+11,flipping,ease,Strongly disagree
+12,flipping,ease,Disagree
+13,flipping,ease,Disagree
+14,flipping,ease,Somewhat agree
+15,flipping,ease,Somewhat disagree
+16,flipping,ease,Disagree
+17,flipping,ease,Somewhat agree
+18,flipping,ease,Strongly disagree
+19,flipping,ease,Somewhat disagree
+20,flipping,ease,Somewhat agree
+21,flipping,ease,Neither agree nor disagree
+22,flipping,ease,Agree
+23,flipping,ease,Somewhat disagree
+24,flipping,ease,Disagree
+25,flipping,ease,Somewhat disagree
+26,flipping,ease,Somewhat disagree
+27,flipping,ease,Somewhat agree
+28,flipping,ease,Somewhat disagree
+29,flipping,ease,Strongly disagree
+0,flipping,comfort,Somewhat disagree
+1,flipping,comfort,Disagree
+2,flipping,comfort,Strongly disagree
+3,flipping,comfort,Somewhat disagree
+4,flipping,comfort,Strongly disagree
+5,flipping,comfort,Disagree
+6,flipping,comfort,Disagree
+7,flipping,comfort,Disagree
+8,flipping,comfort,Somewhat disagree
+9,flipping,comfort,Somewhat disagree
+10,flipping,comfort,Strongly disagree
+11,flipping,comfort,Strongly disagree
+12,flipping,comfort,Disagree
+13,flipping,comfort,Disagree
+14,flipping,comfort,Somewhat agree
+15,flipping,comfort,Somewhat disagree
+16,flipping,comfort,Disagree
+17,flipping,comfort,Strongly disagree
+18,flipping,comfort,Strongly disagree
+19,flipping,comfort,Agree
+20,flipping,comfort,Disagree
+21,flipping,comfort,Somewhat disagree
+22,flipping,comfort,Neither agree nor disagree
+23,flipping,comfort,Disagree
+24,flipping,comfort,Disagree
+25,flipping,comfort,Somewhat disagree
+26,flipping,comfort,Neither agree nor disagree
+27,flipping,comfort,Somewhat agree
+28,flipping,comfort,Somewhat disagree
+29,flipping,comfort,Strongly disagree

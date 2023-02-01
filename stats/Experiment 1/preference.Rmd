@@ -1,0 +1,929 @@
+---
+title: "exp preference"
+author: "Allen Yeh"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```
+```
+
+```{r warning=FALSE}
+library(tidyverse)
+library(gmodels)
+library(rstatix)
+library(tools)
+library(ez)
+library(ARTool)
+library(emmeans)
+```
+
+### Import data
+
+#### Read the csv file and claim the data type
+```{r}
+run_ids <- c("1", "3", "4", "5", "7", "10", "11", "15", "16", "17", "18", "21", "22", "23", "26", "27", "29", "30")
+gesture_level <- c("SHIFT_ABD", "SHIFT_ADD", "SPIN_ABD_HALF", "SPIN_ABD_FULL", "SPIN_ADD_HALF", "SPIN_ADD_FULL", "ROTATE_ABD_HALF", "ROTATE_ABD_FULL", "ROTATE_ADD_HALF", "ROTATE_ADD_FULL", "FLIP_ABD_HALF", "FLIP_ABD_FULL", "FLIP_ADD_HALF", "FLIP_ADD_FULL")
+type_level <- c("ease", "comfort", "confidence", "social_acceptance")
+
+data <- read_csv("exp_preference.csv", col_types = cols(
+  id = col_integer(),
+  gesture = col_factor(levels = gesture_level),
+  manipulation = col_factor(levels = c("0", "1", "2", "3")), 
+  direction = col_factor(levels = c("0", "1")),
+  magnitude = col_factor(levels = c("0", "1", "2")),
+  type = col_factor(levels = type_level),
+  likert = col_integer()
+  )) %>%
+    filter(tolower(`id`) %in% run_ids) %>%
+  mutate(
+    manipulation_code = manipulation %>% recode_factor(
+      `3` = "FLIP",  
+      `2` = "ROTATE",
+      `1` = "SPIN",
+      `0` = "SHIFT"
+      ),
+    direction_code = direction %>% recode_factor(
+      `1` = "ADD",
+      `0` = "ABD"
+      ),
+    magnitude_code = magnitude %>% recode_factor(
+      `2` = "NONE",
+      `1` = "FULL",
+      `0` = "HALF"
+      ),
+)
+
+participants <- read_csv("exp_participants_short_v2.csv", col_types = cols(
+  id = col_integer(),
+  gender = col_factor(levels = c("Male","Female")), 
+  age = col_integer(), 
+  phoneExperience = col_factor(levels = c("-3","3-5", "6-10", "10-")),
+  screenSize = col_factor(levels = c("-4", "4-5", "5-6", "6-")), 
+  dailyUsage = col_factor(levels = c("-1", "1-2", "2-4", "4-8", "8-")), 
+  handSize = col_factor(levels = c("5.5-6.5", "6.5-7.5", "7.5-8.5", "8.5-9.5", "9.5-10.5")),
+  phoneHeight = col_double(),
+  phoneWidth = col_double(),
+  phoneThickness = col_double(),
+  phoneWeight = col_double()
+)) %>%
+    filter(tolower(`id`) %in% run_ids) %>% 
+  mutate(
+    phoneSize_Num = screenSize  %>%  recode(
+          "-4" = 1,
+          "4-5" = 2,
+          "5-6" = 3,
+          "6-" = 4
+          ),
+    handSize_Num = handSize  %>%  recode(
+          "5.5-6.5" = 1,
+          "6.5-7.5" = 2,
+          "7.5-8.5" = 3,
+          "8.5-9.5" = 4,
+          "9.5-10.5" = 5
+          )
+      )
+
+
+res <- cor.test(participants$phoneSize_Num, participants$handSize_Num, 
+                    method = "spearman")
+res
+
+library("ggpubr")
+ggscatter(participants, x = "phoneSize_Num", y = "handSize_Num", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "HandSize")
+
+```
+
+### ease
+
+#### summarize
+
+```{r warning=FALSE}
+data_ease <- data %>%
+  filter(type == "ease")
+
+boxplot(likert~gesture,data=data_ease, main="Ease",
+   xlab="Gesture", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_ease_summary <-data_ease %>%
+  group_by(gesture) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+# line + dot
+ease_graph <- ggplot(data_ease_summary) +
+  geom_pointrange( aes(x=reorder(gesture, desc(gesture)), y=meanScore, ymin=lowCI, ymax=highCI), colour="#28b463", alpha=0.9, size=0.8) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+ease_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("ease_gesture_ci.pdf", width = 7, height = 7)
+
+data_ease_type_summary <-data_ease %>%
+  group_by(manipulation) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+# line + dot
+ease_type_graph <- ggplot(data_ease_type_summary) +
+  geom_pointrange( aes(x=reorder(manipulation, desc(manipulation)), y=meanScore, ymin=lowCI, ymax=highCI), colour="#28b463", alpha=0.9, size=0.8) +
+  scale_y_reverse( lim=c(7,2)) + 
+  coord_flip()
+
+ease_type_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("ease_manipulation_ci.pdf", width = 7, height = 2)
+
+#data_ease_count <- data_ease %>% group_by(manipulation) %>% count(likert)
+#write.csv(data_ease_count,"ease_count.csv", row.names = TRUE)
+```
+#### manipulation x direction
+
+```{r warning=FALSE}
+data_md_summary <-data_ease %>%
+  group_by(manipulation_code, direction_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_md_summary
+
+data_type_summary <-data_ease %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_type_summary
+
+total_ease <- full_join(data_ease, participants)
+
+res <- cor.test(total_ease$phoneSize_Num, total_ease$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_ease$handSize_Num, total_ease$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_ease$phoneHeight, total_ease$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_ease$phoneWidth, total_ease$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_ease$phoneThickness, total_ease$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_ease$phoneWeight, total_ease$likert, 
+                    method = "spearman")
+res
+
+library("ggpubr")
+ggscatter(total_ease, x = "phoneSize_Num", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "Score")
+
+ggscatter(total_ease, x = "handSize_Num", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "HandSize", ylab = "Score")
+
+ggscatter(total_ease, x = "phoneHeight", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneHeight", ylab = "Score")
+
+ggscatter(total_ease, x = "phoneWidth", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWidth", ylab = "Score")
+
+ggscatter(total_ease, x = "phoneThickness", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneThickness", ylab = "Score")
+
+ggscatter(total_ease, x = "phoneWeight", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWeight", ylab = "Score")
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_ease$likert)
+
+m <- art(
+  likert ~ manipulation_code*direction_code + (1|id),
+  data = data_ease
+)
+
+anova(m)
+
+contrast(emmeans(artlm(m,"manipulation_code"), ~ manipulation_code), method="pairwise", adjust="bonferroni")
+```
+#### manipulation x direction x magnitude
+```{r warning=FALSE}
+data_anova = data_ease %>%
+    filter(manipulation_code != "SHIFT")
+
+data_mag_summary <-data_anova %>%
+  group_by(magnitude_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_mag_summary
+
+data_type_summary <-data_anova %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_type_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_anova$likert)
+
+m <- art(
+  likert ~ manipulation_code*direction_code*magnitude_code + (1|id),
+  data = data_anova
+)
+
+anova(m)
+
+contrast(emmeans(artlm(m,"manipulation_code"), ~ manipulation_code), method="pairwise", adjust="bonferroni")
+
+contrast(emmeans(artlm(m,"magnitude_code"), ~ magnitude_code), method="pairwise", adjust="bonferroni")
+```
+
+### comfort
+#### summarize
+
+```{r warning=FALSE}
+data_comfort <- data %>%
+  filter(type == "comfort")
+
+boxplot(likert~gesture,data=data_comfort, main="comfort",
+   xlab="Gesture", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_comfort_summary <-data_comfort %>%
+  group_by(gesture) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+# line + dot
+comfort_graph <- ggplot(data_comfort_summary) +
+  geom_pointrange( aes(x=reorder(gesture, desc(gesture)), y=meanScore, ymin=lowCI, ymax=highCI), colour="#2e86c1", alpha=0.9, size=0.8) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+comfort_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("comfort_gesture_ci.pdf", width = 7, height = 7)
+
+data_comfort_type_summary <-data_comfort %>%
+  group_by(manipulation) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+# line + dot
+comfort_type_graph <- ggplot(data_comfort_type_summary) +
+  geom_pointrange( aes(x=reorder(manipulation, desc(manipulation)), y=meanScore, ymin=lowCI, ymax=highCI), colour="#2e86c1", alpha=0.9, size=0.8) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+comfort_type_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("comfort_manipulation_ci.pdf", width = 7, height = 2)
+
+#data_comfort_count <- data_comfort %>% group_by(manipulation) %>% count(likert)
+#write.csv(data_comfort_count,"comfort_count.csv", row.names = TRUE)
+
+```
+
+#### manipulation x direction
+
+```{r warning=FALSE}
+data_md_summary <-data_comfort %>%
+  group_by(manipulation_code, direction_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_md_summary
+
+data_type_summary <-data_comfort %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_type_summary
+
+total_comfort <- full_join(data_comfort, participants)
+
+res <- cor.test(total_comfort$phoneSize_Num, total_comfort$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_comfort$handSize_Num, total_comfort$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_comfort$phoneHeight, total_comfort$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_comfort$phoneWidth, total_comfort$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_comfort$phoneThickness, total_comfort$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_comfort$phoneWeight, total_comfort$likert, 
+                    method = "spearman")
+res
+
+
+library("ggpubr")
+ggscatter(total_comfort, x = "phoneSize_Num", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "Score")
+
+ggscatter(total_comfort, x = "handSize_Num", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "HandSize", ylab = "Score")
+
+ggscatter(total_comfort, x = "phoneHeight", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneHeight", ylab = "Score")
+
+ggscatter(total_comfort, x = "phoneWidth", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWidth", ylab = "Score")
+
+ggscatter(total_comfort, x = "phoneThickness", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneThickness", ylab = "Score")
+
+ggscatter(total_comfort, x = "phoneWeight", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWeight", ylab = "Score")
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_comfort$likert)
+
+m <- art(
+  likert ~ manipulation_code*direction_code + (1|id),
+  data = data_comfort
+)
+
+anova(m)
+
+contrast(emmeans(artlm(m,"manipulation_code"), ~ manipulation_code), method="pairwise", adjust="bonferroni")
+```
+#### manipulation x direction x magnitude
+```{r warning=FALSE}
+data_anova = data_comfort %>%
+    filter(manipulation_code != "SHIFT")
+
+data_mag_summary <-data_anova %>%
+  group_by(magnitude_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_mag_summary
+
+data_type_summary <-data_anova %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_type_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_anova$likert)
+
+m <- art(
+  likert ~ manipulation_code*direction_code*magnitude_code + (1|id),
+  data = data_anova
+)
+
+anova(m)
+
+contrast(emmeans(artlm(m,"manipulation_code"), ~ manipulation_code), method="pairwise", adjust="bonferroni")
+
+contrast(emmeans(artlm(m,"magnitude_code"), ~ magnitude_code), method="pairwise", adjust="bonferroni")
+```
+
+
+### confidence
+#### summarize
+
+```{r warning=FALSE}
+data_confidence <- data %>%
+  filter(type == "confidence")
+
+boxplot(likert~gesture,data=data_confidence, main="confidence",
+   xlab="Gesture", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_confidence_summary <-data_confidence %>%
+  group_by(gesture) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+# line + dot
+confidence_graph <- ggplot(data_confidence_summary) +
+  geom_pointrange( aes(x=reorder(gesture, desc(gesture)), y=meanScore, ymin=lowCI, ymax=highCI), colour="#c0392b", alpha=0.9, size=0.8) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+confidence_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("confidence_gesture_ci.pdf", width = 7, height = 7)
+
+data_confidence_type_summary <-data_confidence %>%
+  group_by(manipulation) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+# line + dot
+confidence_type_graph <- ggplot(data_confidence_type_summary) +
+  geom_pointrange( aes(x=reorder(manipulation, desc(manipulation)), y=meanScore, ymin=lowCI, ymax=highCI), colour="#c0392b", alpha=0.9, size=0.8) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+confidence_type_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("confidence_manipulation_ci.pdf", width = 7, height = 2)
+
+```
+
+#### manipulation x direction
+
+```{r warning=FALSE}
+data_md_summary <-data_confidence %>%
+  group_by(manipulation_code, direction_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_md_summary
+
+data_type_summary <-data_confidence %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_type_summary
+
+total_confidence <- full_join(data_confidence, participants)
+
+res <- cor.test(total_confidence$phoneSize_Num, total_confidence$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_confidence$handSize_Num, total_confidence$likert, 
+                    method = "spearman")
+res
+
+
+res <- cor.test(total_confidence$phoneHeight, total_confidence$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_confidence$phoneWidth, total_confidence$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_confidence$phoneThickness, total_confidence$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_confidence$phoneWeight, total_confidence$likert, 
+                    method = "spearman")
+res
+
+
+library("ggpubr")
+ggscatter(total_confidence, x = "phoneSize_Num", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "Score")
+
+ggscatter(total_confidence, x = "handSize_Num", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "HandSize", ylab = "Score")
+
+ggscatter(total_confidence, x = "phoneHeight", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneHeight", ylab = "Score")
+
+ggscatter(total_confidence, x = "phoneWidth", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWidth", ylab = "Score")
+
+ggscatter(total_confidence, x = "phoneThickness", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneThickness", ylab = "Score")
+
+ggscatter(total_confidence, x = "phoneWeight", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWeight", ylab = "Score")
+
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_confidence$likert)
+
+m <- art(
+  likert ~ manipulation_code*direction_code + (1|id),
+  data = data_confidence
+)
+
+anova(m)
+
+contrast(emmeans(artlm(m,"manipulation_code"), ~ manipulation_code), method="pairwise", adjust="bonferroni")
+```
+#### manipulation x direction x magnitude
+```{r warning=FALSE}
+data_anova = data_confidence %>%
+    filter(manipulation_code != "SHIFT")
+
+data_mag_summary <-data_anova %>%
+  group_by(magnitude_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_mag_summary
+
+data_type_summary <-data_anova %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_type_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_anova$likert)
+
+m <- art(
+  likert ~ manipulation_code*direction_code*magnitude_code + (1|id),
+  data = data_anova
+)
+
+anova(m)
+
+contrast(emmeans(artlm(m,"manipulation_code"), ~ manipulation_code), method="pairwise", adjust="bonferroni")
+
+contrast(emmeans(artlm(m,"magnitude_code"), ~ magnitude_code), method="pairwise", adjust="bonferroni")
+```
+
+
+### social acceptance
+#### summarize
+
+```{r warning=FALSE}
+data_social <- data %>%
+  filter(type == "social_acceptance")
+
+boxplot(likert~gesture,data=data_social, main="social_acceptance",
+   xlab="Gesture", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_social_summary <-data_social %>%
+  group_by(gesture) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+# line + dot
+social_graph <- ggplot(data_social_summary) +
+  geom_pointrange( aes(x=reorder(gesture, desc(gesture)), y=meanScore, ymin=lowCI, ymax=highCI), colour="#5d6d7e", alpha=0.9, size=0.8) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+social_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("social_acceptance_gesture_ci.pdf", width = 7, height = 7)
+
+data_social_type_summary <-data_social %>%
+  group_by(manipulation) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+# line + dot
+social_type_graph <- ggplot(data_social_type_summary) +
+  geom_pointrange( aes(x=reorder(manipulation, desc(manipulation)), y=meanScore, ymin=lowCI, ymax=highCI), colour="#5d6d7e", alpha=0.9, size=0.8) +
+  scale_y_reverse(lim=c(7,2)) + 
+  coord_flip()
+
+social_type_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.y = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.x = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank()
+    )
+ggsave("social_acceptance_manipulation_ci.pdf", width = 7, height = 2)
+```
+
+#### manipulation x direction
+
+```{r warning=FALSE}
+data_md_summary <-data_social %>%
+  group_by(manipulation_code, direction_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_md_summary
+
+data_type_summary <-data_social %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_type_summary
+
+total_social <- full_join(data_social, participants)
+
+res <- cor.test(total_social$phoneSize_Num, total_social$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_social$handSize_Num, total_social$likert, 
+                    method = "spearman")
+res
+
+
+res <- cor.test(total_social$phoneHeight, total_social$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_social$phoneWidth, total_social$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_social$phoneThickness, total_social$likert, 
+                    method = "spearman")
+res
+
+res <- cor.test(total_social$phoneWeight, total_social$likert, 
+                    method = "spearman")
+res
+
+
+
+library("ggpubr")
+ggscatter(total_social, x = "phoneSize_Num", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "PhoneSize", ylab = "Score")
+
+ggscatter(total_social, x = "handSize_Num", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "HandSize", ylab = "Score")
+
+ggscatter(total_social, x = "phoneHeight", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneHeight", ylab = "Score")
+
+ggscatter(total_social, x = "phoneWidth", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWidth", ylab = "Score")
+
+ggscatter(total_social, x = "phoneThickness", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneThickness", ylab = "Score")
+
+ggscatter(total_social, x = "phoneWeight", y = "likert", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "phoneWeight", ylab = "Score")
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_social$likert)
+
+m <- art(
+  likert ~ manipulation_code*direction_code + (1|id),
+  data = data_social
+)
+
+anova(m)
+
+contrast(emmeans(artlm(m,"manipulation_code"), ~ manipulation_code), method="pairwise", adjust="bonferroni")
+```
+#### manipulation x direction x magnitude
+```{r warning=FALSE}
+data_anova = data_social %>%
+    filter(manipulation_code != "SHIFT")
+
+data_mag_summary <-data_anova %>%
+  group_by(magnitude_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_mag_summary
+
+data_type_summary <-data_anova %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = likert %>% mean(na.rm=TRUE),
+    lowCI = ci(likert)[2]%>% pmax(0),
+    highCI = ci(likert)[3],
+    sd = ci(likert)[4],
+    std = likert %>% sd())
+
+data_type_summary
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_anova$likert)
+
+m <- art(
+  likert ~ manipulation_code*direction_code*magnitude_code + (1|id),
+  data = data_anova
+)
+
+anova(m)
+
+contrast(emmeans(artlm(m,"manipulation_code"), ~ manipulation_code), method="pairwise", adjust="bonferroni")
+
+contrast(emmeans(artlm(m,"magnitude_code"), ~ magnitude_code), method="pairwise", adjust="bonferroni")
+```
+

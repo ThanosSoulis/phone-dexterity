@@ -1,0 +1,218 @@
+---
+title: "exp time"
+author: "Allen Yeh"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```
+```
+
+```{r warning=FALSE}
+library(tidyverse)
+library(gmodels)
+library(rstatix)
+library(ggplot2)
+library(ez)
+library(ARTool)
+library(emmeans)
+```
+
+### Import data
+
+#### Read the csv file and claim the data type
+```{r}
+type_level <- c("comfort", "willingness")
+
+scenario <- read_csv("summaryScenario.csv", col_types = cols(
+  manipulation = col_factor(levels = c("0", "1", "2")),
+  rating = col_integer(),
+  scenario = col_factor(levels = c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")),
+  category = col_factor(levels = type_level),
+)) %>% 
+  mutate(
+    manipulation_code = manipulation %>% recode_factor(
+      `2` = "FLIP",  
+      `1` = "ROTATE",
+      `0` = "SPIN"
+      ),
+    scenario_code = scenario %>% recode_factor(
+      `9` = "walk on hard floor",
+      `8` = "walk on soft floor",
+      `7` = "stand on hard floor",
+      `6` = "stand on soft floor",
+      `5` = "stand by hard furniture",
+      `4` = "stand by soft furniture",
+      `3` = "sit on hard floor",
+      `2` = "sit on soft floor",
+      `0` = "sit by desk",
+      `1` = "sit on soft furniture"
+      ),
+)
+```
+
+
+### comfort
+
+#### summarize
+
+```{r warning=FALSE}
+data_comfort <- scenario %>%
+  filter(category == "comfort")
+
+boxplot(rating~scenario,data=data_comfort, main="Comfort",
+   xlab="Scenario", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_comfort_summary <-data_comfort %>%
+  group_by(scenario_code, manipulation_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(1),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+data_comfort_summary
+
+data_comfort_manipulation_summary <-data_comfort %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(1),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+data_comfort_manipulation_summary
+
+
+data_comfort_scenario_summary <-data_comfort %>%
+  group_by(scenario_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(1),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+data_comfort_scenario_summary
+
+# line + dot
+comfort_graph <- ggplot(data_comfort_summary) +
+  geom_pointrange( aes(x=reorder(scenario_code, desc(scenario_code)), y=meanScore, ymin=lowCI, ymax=highCI, colour=reorder(manipulation_code, desc(manipulation_code))), alpha=0.9, size=0.8, position = position_dodge(width = 0.4)) +
+  scale_y_continuous(lim=c(1,7))
+
+comfort_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.x = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.y = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_blank()
+    )
+ggsave("comfort_scenario_ci.pdf", width = 20, height = 5)
+
+
+#data_ease_count <- data_ease %>% group_by(manipulation) %>% count(likert)
+#write.csv(data_ease_count,"ease_count.csv", row.names = TRUE)
+```
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_comfort$rating)
+
+m <- art(
+  rating ~ scenario_code*manipulation_code + (1|id),
+  data = data_comfort
+)
+
+anova(m)
+
+art.con(m, "scenario_code")
+art.con(m, "manipulation_code")
+art.con(m, "scenario_code:manipulation_code")
+```
+
+
+### willingness
+
+#### summarize
+
+```{r warning=FALSE}
+data_willingness <- scenario %>%
+  filter(category == "willingness")
+
+boxplot(rating~scenario,data=data_willingness, main="Willingness",
+   xlab="Scenario", ylab="likert scale", horizontal=TRUE, outline = FALSE)
+
+data_willingness_summary <-data_willingness %>%
+  group_by(scenario_code, manipulation_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(1),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+data_willingness_summary
+
+data_willingness_manipulation_summary <-data_willingness %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(1),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+data_willingness_manipulation_summary
+
+
+data_willingness_scenario_summary <-data_willingness %>%
+  group_by(scenario_code) %>%
+  summarize(
+    meanScore = rating %>% mean(na.rm=TRUE),
+    lowCI = ci(rating)[2]%>% pmax(1),
+    highCI = ci(rating)[3]%>% pmin(7),
+    sd = ci(rating)[4],
+    std = rating %>% sd())
+
+data_willingness_scenario_summary
+
+# line + dot
+willingness_graph <- ggplot(data_willingness_summary) +
+  geom_pointrange( aes(x=reorder(scenario_code, desc(scenario_code)), y=meanScore, ymin=lowCI, ymax=highCI, colour=reorder(manipulation_code, desc(manipulation_code))), alpha=0.9, size=0.8, position = position_dodge(width = 0.4)) +
+  scale_y_continuous(lim=c(1,7))
+
+willingness_graph + theme( # remove the vertical grid lines
+          legend.position = "none",
+          panel.background = element_blank(),
+          panel.grid.major.x = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.y = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_blank()
+    )
+ggsave("willingness_scenario_ci.pdf", width = 20, height = 5)
+
+#data_ease_count <- data_ease %>% group_by(manipulation) %>% count(likert)
+#write.csv(data_ease_count,"ease_count.csv", row.names = TRUE)
+```
+
+#### analysis
+```{r warning=FALSE}
+shapiro.test(data_willingness$rating)
+
+m <- art(
+  rating ~ scenario_code*manipulation_code + (1|id),
+  data = data_willingness
+)
+
+anova(m)
+
+art.con(m, "scenario_code")
+art.con(m, "manipulation_code")
+```

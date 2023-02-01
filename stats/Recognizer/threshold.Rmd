@@ -1,0 +1,253 @@
+---
+title: "exp time"
+author: "Allen Yeh"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```
+```
+
+```{r warning=FALSE}
+library(tidyverse)
+library(gmodels)
+library(rstatix)
+library(ggplot2)
+```
+
+### Import data
+
+#### Read the csv file and claim the data type
+```{r}
+threshold <- read_csv("threshold.csv", 
+    col_types = cols(Label = col_character(), Half = col_character(), Full = col_character(), 
+        Accuracy = col_number(), half_FP = col_double(),full_FP = col_double(),max_FP = col_double(),mean_FP = col_double()
+        ))
+
+```
+
+### figure
+```{r warning=FALSE}
+threhsold_graph <- ggplot(data=threshold, aes(x=Accuracy, y=half_FP)) +
+  geom_line(aes(color = Full))+
+  scale_color_manual(values = c("#CB4335", "#7D3C98", "#2E86C1", "#229954", "#D68910")) + 
+  coord_cartesian(ylim = c(0, 20)) + 
+  geom_vline(aes(xintercept = 75), size = 0.5,
+             color = "#7B241C", linetype = "dashed") +
+  geom_hline(aes(yintercept = 3), size = 0.5,
+             color = "#1C2833", linetype = "dashed")
+
+threhsold_graph
+  
+threhsold_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.x = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.y = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          legend.text = element_blank()
+    )
+ggsave("threshold.pdf", width = 4, height = 4)
+
+```
+
+#### Read the csv file and claim the data type
+```{r}
+gesture_level <- c("SPIN_ABD_HALF", "SPIN_ABD_FULL", "SPIN_ADD_HALF", "SPIN_ADD_FULL", "ROTATE_ABD_HALF", "ROTATE_ABD_FULL", "ROTATE_ADD_HALF", "ROTATE_ADD_FULL", "FLIP_ABD_HALF", "FLIP_ABD_FULL", "FLIP_ADD_HALF", "FLIP_ADD_FULL")
+
+FP <- read_csv("FP.csv", col_types = cols(gesture = col_factor(levels = gesture_level), 
+    FP = col_double(), Dataset = col_character()))
+```
+
+### figure
+```{r warning=FALSE}
+fp_graph <- ggplot(data=FP, aes(x=gesture, y=FP, fill=Dataset)) +
+  geom_bar(stat="identity", width = 0.3, position=position_dodge()) +
+  scale_fill_manual(values=c('#239B56','#2874A6'))
+
+fp_graph
+  
+fp_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.x = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.y = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_blank()
+    )
+ggsave("falsePositive.pdf", width = 7, height = 2)
+#threhsold_graph
+```
+
+
+#### Read the csv file and claim the data type
+```{r}
+
+
+tp <- read_csv("summary_tp_new.csv", col_types = cols(
+  gesture = col_factor(levels = c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12")),
+  manipulation = col_factor(levels = c("0", "1", "2")), 
+  direction = col_factor(levels = c("0", "1")),
+  magnitude = col_factor(levels = c("0", "1")),
+  recognized = col_factor(levels = c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12")),
+  time = col_integer(),
+  trial = col_integer(),
+  block = col_integer(),
+  correct = col_logical()
+)) %>% 
+  filter(trial >= 2) %>% 
+  mutate(
+    manipulation_code = manipulation %>% recode_factor(
+      `2` = "FLIP",  
+      `1` = "ROTATE",
+      `0` = "SPIN"
+      ),
+    direction_code = direction %>% recode_factor(
+      `1` = "ADD",
+      `0` = "ABD"
+      ),
+    magnitude_code = magnitude %>% recode_factor(
+      `1` = "FULL",
+      `0` = "HALF"
+      ),
+    gesture_code = gesture %>% recode_factor(
+      `12` = "FLIP_ADD_FULL",
+      `11` = "FLIP_ADD_HALF",
+      `10` = "FLIP_ABD_FULL",
+      `9` = "FLIP_ABD_HALF",
+      `8` = "ROTATE_ADD_FULL",
+      `7` = "ROTATE_ADD_HALF",
+      `6` = "ROTATE_ABD_FULL",
+      `5` = "ROTATE_ABD_HALF",
+      `4` = "SPIN_ADD_FULL",
+      `3` = "SPIN_ADD_HALF",
+      `2` = "SPIN_ABD_FULL",
+      `1` = "SPIN_ABD_HALF",
+      `0` = "NONE"
+      ),
+    recognized_code = recognized %>% recode_factor(
+      `12` = "FLIP_ADD_FULL",
+      `11` = "FLIP_ADD_HALF",
+      `10` = "FLIP_ABD_FULL",
+      `9` = "FLIP_ABD_HALF",
+      `8` = "ROTATE_ADD_FULL",
+      `7` = "ROTATE_ADD_HALF",
+      `6` = "ROTATE_ABD_FULL",
+      `5` = "ROTATE_ABD_HALF",
+      `4` = "SPIN_ADD_FULL",
+      `3` = "SPIN_ADD_HALF",
+      `2` = "SPIN_ABD_FULL",
+      `1` = "SPIN_ABD_HALF",
+      `0` = "NONE"
+      ),
+)
+```
+
+### figure
+```{r warning=FALSE}
+tp_accuracy <- tp %>%
+  group_by(id, gesture_code) %>%
+  summarize(
+    accuracy = sum(correct) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, gesture_code)
+
+tp_data <- tp_accuracy %>%
+  group_by(gesture_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+print(tp_data)
+
+# line + dot
+tp_graph <- ggplot(tp_data) +
+  geom_pointrange( aes(x=reorder(gesture_code, desc(gesture_code)), y=meanAccuracy, ymin=lowCIAccuracy, ymax=highCIAccuracy), colour="black", alpha=0.9, size=0.8) +
+  scale_y_continuous(limits=c(0.3,1))
+tp_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.x = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.y = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_blank()
+    )
+ggsave("truePositive_gesture.pdf", width = 7, height = 2)
+
+tp_accuracy <- tp %>%
+  group_by(id, manipulation_code) %>%
+  summarize(
+    accuracy = sum(correct) / n(),
+    n_trials = n()
+  ) %>%
+  ungroup() %>%
+  arrange(id, manipulation_code)
+
+tp_data <- tp_accuracy %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanAccuracy = accuracy %>% mean(na.rm=TRUE),
+    lowCIAccuracy = ci(accuracy)[2] %>% pmax(0),
+    highCIAccuracy = ci(accuracy)[3] %>% pmin(1),
+    sdAccuracy = ci(accuracy)[4],
+    stdAccuracy = sd(accuracy))
+
+print(tp_data)
+
+# line + dot
+tp_graph <- ggplot(tp_data) +
+  geom_pointrange( aes(x=reorder(manipulation_code, desc(manipulation_code)), y=meanAccuracy, ymin=lowCIAccuracy, ymax=highCIAccuracy), colour="black", alpha=0.9, size=0.8) +
+  scale_y_continuous(limits=c(0.3,1))
+tp_graph + theme( # remove the vertical grid lines
+          panel.background = element_blank(),
+          panel.grid.major.x = element_blank() ,
+          # explicitly set the horizontal lines (or they will disappear too)
+          panel.grid.major.y = element_line( size=.1, color="gray" ),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_blank()
+    )
+ggsave("truePositive_manipulation.pdf", width = 7, height = 2)
+
+#threhsold_graph
+```
+
+
+### tp - time
+```{r warning=FALSE}
+tp_time <- tp %>%
+  filter(correct == TRUE)
+
+tp_time_gesture <- tp_time %>%
+  group_by(gesture_code) %>%
+  summarize(
+    meanTime = time %>% mean(na.rm=TRUE),
+    lowCITime = ci(time)[2] %>% pmax(0),
+    highCITime = ci(time)[3],
+    sdTime = ci(time)[4],
+    stdTime = sd(time))
+
+print(tp_time_gesture)
+
+tp_time_manipulation <- tp_time %>%
+  group_by(manipulation_code) %>%
+  summarize(
+    meanTime = time %>% mean(na.rm=TRUE),
+    lowCITime = ci(time)[2] %>% pmax(0),
+    highCITime = ci(time)[3],
+    sdTime = ci(time)[4],
+    stdTime = sd(time))
+
+print(tp_time_manipulation)
+```
