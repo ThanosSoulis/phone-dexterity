@@ -3,6 +3,7 @@ package com.example.phonedexterityTraining.relaxing;
 import static java.time.LocalDate.now;
 import static java.time.temporal.ChronoUnit.DAYS;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Color;
@@ -56,10 +57,10 @@ import static processing.core.PApplet.map;
 
 public class relaxingActivity extends AppCompatActivity {
     private static final String TAG = "relaxingActivity";
-    private static final String MSG_KEY = "result";
-    private static final String LOG_KEY = "log";
-    private static final String SCORE_KEY = "score";
-    private static final String SPEED_KEY = "speed";
+    public static final String MSG_KEY = "result";
+    public static final String LOG_KEY = "log";
+    public static final String SCORE_KEY = "score";
+    public static final String SPEED_KEY = "speed";
 
     private TextView relaxText, currentRep, currentSpeed, currentScore;
     private TextView historyRep1, historySpeed1, historyScore1;
@@ -105,6 +106,7 @@ public class relaxingActivity extends AppCompatActivity {
 
     int displayWindow = 120;
 
+    @SuppressLint("HandlerLeak")
     private final Handler resultHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {

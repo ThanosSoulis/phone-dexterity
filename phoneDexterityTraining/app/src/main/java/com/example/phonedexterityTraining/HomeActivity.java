@@ -8,6 +8,7 @@ import static java.time.temporal.ChronoUnit.DAYS;
 
 import static processing.core.PApplet.map;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -17,6 +18,8 @@ import android.os.Bundle;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.Handler;
+import android.os.Message;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.StyleSpan;
@@ -37,7 +40,9 @@ import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.google.firebase.database.DataSnapshot;
@@ -49,13 +54,12 @@ import com.google.firebase.database.IgnoreExtraProperties;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicMarkableReference;
-
-
 
 public class HomeActivity extends AppCompatActivity {
     private static final String TAG = "HomeActivity";
@@ -66,6 +70,28 @@ public class HomeActivity extends AppCompatActivity {
 
     HashMap<String, record> recordList = new HashMap<>();
 
+
+    private recognizingBackground sensor;
+    private static long prevTime = 0;
+    @SuppressLint("HandlerLeak")
+    private static Handler resultHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            Bundle bundle = msg.getData();
+
+            if(bundle.containsKey(relaxingActivity.MSG_KEY)) {
+                String string = bundle.getString(relaxingActivity.MSG_KEY);
+                String scoreString = bundle.getString(relaxingActivity.SCORE_KEY);
+                String speedString = bundle.getString(relaxingActivity.SPEED_KEY);
+                long time = System.currentTimeMillis();
+                if ((time - prevTime) >= relaxingActivity.GESTURE_GAP_TIME) {
+                    Log.d(TAG, "" + Integer.parseInt(string) + ", " + Float.parseFloat(scoreString) + ", " + Float.parseFloat(speedString));
+                    Log.d(TAG, string + (time - prevTime));
+                    prevTime = time;
+                }
+            }
+        }
+    };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //Log.d(TAG, "onCreate");
@@ -74,6 +100,10 @@ public class HomeActivity extends AppCompatActivity {
 
         final Context context = this;
 
+        //This starts the recognizingBackground thread
+        // sensor
+        sensor = new recognizingBackground(getApplicationContext(), resultHandler, true);
+        sensor.start();
 
         //ArrayList<String> list = new ArrayList<String>();
         //ArrayAdapter arrayAdapter = new ArrayAdapter(getApplicationContext(), android.R.layout.simple_list_item_1, list);
@@ -158,7 +188,18 @@ public class HomeActivity extends AppCompatActivity {
         super.onResume();
         Log.d(TAG, "onResume");
     }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
 
+        sensor.stopThread();
+        try {
+            sensor.join();
+            Log.d(TAG, "sensor join");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
