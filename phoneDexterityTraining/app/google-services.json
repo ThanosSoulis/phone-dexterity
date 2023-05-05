@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "572938881645",
+    "project_id": "phone-dexterity",
+    "storage_bucket": "phone-dexterity.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572938881645:android:27303ab758db7bc0b60d64",
+        "android_client_info": {
+          "package_name": "com.example.phonedexterityTraining"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "572938881645-cbcfrkbhvmbpnpqh60pl30hvl5h4uv46.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcrUbAfz8lu5GbQkE4uS-T4Z8kPJKoh-0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "572938881645-cbcfrkbhvmbpnpqh60pl30hvl5h4uv46.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
